@@ -170,6 +170,7 @@ nav svg{width:24px;height:24px}
 'use strict';
 /* ───────────── Daten ───────────── */
 const KEY = 'training-data-v1';
+const VERSION = '18.11.2026 · 3';
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
 function fresh() {
@@ -457,7 +458,11 @@ function viewMehr() {
     <button class="row" data-act="backupExport"><div class="main"><div class="t">Backup speichern</div><div class="s">${lb ? 'Letztes Backup: ' + new Date(lb).toLocaleDateString('de-DE') : 'Noch nie gesichert'}</div></div><span class="chev">›</span></button>
     <button class="row" data-act="backupImport"><div class="main"><div class="t">Backup laden</div><div class="s">Ersetzt alle Daten auf diesem Gerät</div></div><span class="chev">›</span></button>
   </div>
-  <p style="color:var(--soft);font-size:13px;margin:14px 4px">Alle Daten liegen nur auf diesem Gerät. Speichere ab und zu ein Backup in „Dateien“ oder iCloud, damit beim Handywechsel nichts verloren geht.</p>`;
+  <div class="sec">App</div><div class="card">
+    <button class="row" data-act="appUpdate"><div class="main"><div class="t">🔄 App aktualisieren</div><div class="s">Lädt die neueste Version · deine Daten bleiben erhalten</div></div><span class="chev">›</span></button>
+  </div>
+  <p style="color:var(--soft);font-size:13px;margin:14px 4px 4px">Version ${VERSION}</p>
+  <p style="color:var(--soft);font-size:13px;margin:4px 4px 14px">Alle Daten liegen nur auf diesem Gerät. Speichere ab und zu ein Backup in „Dateien“ oder iCloud, damit beim Handywechsel nichts verloren geht.</p>`;
   return { head, body };
 }
 
@@ -799,6 +804,14 @@ const A = {
   backupImport: () => $('#file').click(),
   confirmOk: () => { const f = ui.confirmFn; ui.confirmFn = null; closeSheet(); if (f) f(); },
   closeSheet: () => closeSheet(),
+  appUpdate: async el => {
+    const t = el.querySelector('.t'); if (t) t.textContent = '🔄 Wird aktualisiert …';
+    try {
+      if (navigator.serviceWorker) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())); }
+      if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x => caches.delete(x))); }
+    } catch (e) {}
+    location.replace(location.pathname + '?v=' + Date.now());
+  },
 };
 
 // Übungen ohne Plan und ohne Geräte aufräumen
