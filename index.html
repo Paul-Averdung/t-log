@@ -80,6 +80,11 @@ main{padding:4px 16px 24px;max-width:560px;margin:0 auto}
 .wfield span{color:var(--soft);font-size:14px}
 .save{border:0;border-radius:10px;background:var(--accent);color:var(--accent-text);padding:0 14px;font-weight:600;font-size:15px;min-width:96px;flex:none}
 .save.done{background:var(--ok-bg);color:var(--ok)}
+.xrow{display:flex;align-items:center;gap:10px;margin-top:8px}
+.xlbl{font-size:13px;color:var(--soft);white-space:nowrap}
+.seg{display:flex;flex:1;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:2px}
+.seg button{flex:1;border:0;background:none;padding:6px 0;border-radius:8px;font-size:14px;color:var(--soft)}
+.seg button.on{background:var(--card);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
 .ex-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .lnk{background:none;border:1px dashed var(--line);border-radius:10px;padding:9px 12px;font-size:14px;color:var(--soft);flex:1;white-space:nowrap}
 .hint{font-size:14px;color:var(--soft);padding:12px 0 4px}
@@ -196,6 +201,15 @@ const logsFor = devId => S.logs.filter(l => l.deviceId === devId).sort((a, b) =>
 // sicherstellen, dass das gewählte Gym existiert
 if (!gym(S.settings.gymId)) { if (!S.gyms.length) S.gyms.push({ id: uid(), name: 'Mein Gym' }); S.settings.gymId = S.gyms[0].id; save(); }
 
+// Einmalige Umstellung: Zusatzgewicht stand früher in der Notiz
+S.devices.forEach(d => {
+  const m = /^\s*(\+{1,3})\s*\(\d Zusatzgewichte?\)\s*$/.exec(d.note || '');
+  if (!m) return;
+  const x = m[1].length; d.note = '';
+  S.logs.forEach(l => { if (l.deviceId === d.id && !l.x) l.x = x; });
+  save();
+});
+
 /* ───────────── Helfer ───────────── */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -210,6 +224,8 @@ function fmtD(iso) {
 const range = e => (e.repMin === e.repMax || !e.repMax) ? String(e.repMin) : e.repMin + '–' + e.repMax;
 const schemeOf = (e, p) => (p && p.schemes && p.schemes[e.id]) || e;
 const scheme = (e, p) => { const o = schemeOf(e, p); return (o.sets ? o.sets + ' × ' : '') + range(o) + ' Wdh.'; };
+const fmtX = x => x ? ` +${x}` : '';
+const wx = l => fmtW(l.weight) + ' kg' + fmtX(l.x);
 const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
 
 let toastT;
@@ -274,11 +290,12 @@ function devRow(d) {
   const ls = logsFor(d.id), t = today();
   const todayLog = ls.find(l => l.date === t);
   const prev = ls.filter(l => l.date !== t).pop();
-  const val = todayLog ? todayLog.weight : prev ? prev.weight : '';
-  let info = prev ? `${fmtW(prev.weight)} kg · ${fmtD(prev.date)}` : 'noch kein Eintrag';
-  if (todayLog && prev && todayLog.weight !== prev.weight) {
+  const base = todayLog || prev;
+  const val = base ? base.weight : '', xv = base ? (base.x || 0) : 0;
+  let info = prev ? `${wx(prev)} · ${fmtD(prev.date)}` : 'noch kein Eintrag';
+  if (todayLog && prev && (todayLog.weight !== prev.weight || (todayLog.x || 0) !== (prev.x || 0))) {
     const diff = todayLog.weight - prev.weight;
-    info = `<span class="up">${diff > 0 ? '+' : '−'}${fmtW(Math.abs(diff))}</span> · vorher ${fmtW(prev.weight)} kg`;
+    info = (diff ? `<span class="up">${diff > 0 ? '+' : '−'}${fmtW(Math.abs(diff))}</span> · ` : '') + `vorher ${wx(prev)}`;
   }
   return `<div class="dev">
     <div class="dev-top">
@@ -292,14 +309,18 @@ function devRow(d) {
       <button class="step" data-act="step" data-id="${d.id}" data-dir="1" aria-label="mehr">+</button>
       <button class="save${todayLog ? ' done' : ''}" data-act="saveW" data-id="${d.id}">${todayLog ? '✓ Heute' : 'Speichern'}</button>
     </div>
+    <div class="xrow"><span class="xlbl">Zusatzgewicht</span><div class="seg" data-xfor="${d.id}">
+      ${[0, 1, 2, 3].map(n => `<button class="${n === xv ? 'on' : ''}" data-act="setX" data-id="${d.id}" data-x="${n}">${n ? 'Stufe ' + n : 'Ohne'}</button>`).join('')}
+    </div></div>
   </div>`;
 }
 
+function getX(devId) { const b = document.querySelector(`[data-xfor="${devId}"] .on`); return b ? +b.dataset.x : 0; }
 function syncSave(devId) {
   const inp = document.querySelector(`[data-wfor="${devId}"]`), btn = document.querySelector(`[data-act="saveW"][data-id="${devId}"]`);
   if (!inp || !btn) return;
   const tl = S.logs.find(l => l.deviceId === devId && l.date === today());
-  const same = tl && parseW(inp.value) === tl.weight;
+  const same = tl && parseW(inp.value) === tl.weight && getX(devId) === (tl.x || 0);
   btn.classList.toggle('done', !!same);
   btn.textContent = same ? '✓ Heute' : 'Speichern';
 }
@@ -308,12 +329,12 @@ function saveWeight(devId) {
   const inp = document.querySelector(`[data-wfor="${devId}"]`);
   const w = parseW(inp.value);
   if (!isFinite(w) || w < 0) { toast('Bitte ein Gewicht eingeben'); inp.focus(); return; }
-  const t = today();
+  const t = today(), x = getX(devId);
   const ex0 = S.logs.find(l => l.deviceId === devId && l.date === t);
-  if (ex0) { ex0.weight = w; ex0.ts = Date.now(); }
-  else S.logs.push({ id: uid(), deviceId: devId, date: t, ts: Date.now(), weight: w });
+  if (ex0) { ex0.weight = w; ex0.x = x; ex0.ts = Date.now(); }
+  else S.logs.push({ id: uid(), deviceId: devId, date: t, ts: Date.now(), weight: w, x });
   save(); inp.blur(); render();
-  toast(`Gespeichert: ${fmtW(w)} kg`);
+  toast(`Gespeichert: ${fmtW(w)} kg${x ? ' + Stufe ' + x : ''}`);
 }
 
 /* ───────────── Verlauf ───────────── */
@@ -352,13 +373,13 @@ function viewHistDetail(e) {
       const first = ls[0], last = ls[ls.length - 1], best = Math.max(...ls.map(l => l.weight));
       const diff = last.weight - first.weight;
       body += `<div class="stats">
-        <div class="stat"><div class="k">Aktuell</div><div class="v">${fmtW(last.weight)} kg</div></div>
+        <div class="stat"><div class="k">Aktuell</div><div class="v">${wx(last)}</div></div>
         <div class="stat"><div class="k">Bestwert</div><div class="v">${fmtW(best)} kg</div></div>
         <div class="stat"><div class="k">Seit Start</div><div class="v">${diff >= 0 ? '+' : '−'}${fmtW(Math.abs(diff))} kg</div></div>
       </div>`;
       body += chart(ls);
       const all = ui.showAll[d.id], rev = ls.slice().reverse(), shown = all ? rev : rev.slice(0, 5);
-      body += `<div class="loglist">` + shown.map(l => `<div class="log"><span class="d">${fmtD(l.date)}</span><span><b>${fmtW(l.weight)} kg</b><button data-act="delLog" data-id="${l.id}" aria-label="Eintrag löschen">✕</button></span></div>`).join('') + `</div>`;
+      body += `<div class="loglist">` + shown.map(l => `<div class="log"><span class="d">${fmtD(l.date)}</span><span><b>${wx(l)}</b><button data-act="delLog" data-id="${l.id}" aria-label="Eintrag löschen">✕</button></span></div>`).join('') + `</div>`;
       if (rev.length > 5 && !all) body += `<button class="more" data-act="showAll" data-id="${d.id}">Alle ${rev.length} Einträge zeigen</button>`;
       body += `</div>`;
     });
@@ -644,7 +665,7 @@ async function doImport() {
     if (!exId || !gId || dev(d.id)) return;
     if (S.devices.some(x => x.exerciseId === exId && x.gymId === gId && norm(x.name) === norm(d.name))) return;
     S.devices.push({ id: d.id, exerciseId: exId, gymId: gId, name: d.name, note: d.note || '', step: d.step || 2.5 }); nD++;
-    if (typeof d.w === 'number') S.logs.push({ id: uid(), deviceId: d.id, date: yday, ts: Date.now(), weight: d.w });
+    if (typeof d.w === 'number') S.logs.push({ id: uid(), deviceId: d.id, date: yday, ts: Date.now(), weight: d.w, x: d.x || 0 });
   });
   const plansIn = data.plans || (data.plan ? [data.plan] : []);
   let pl = null, nP = 0;
@@ -743,6 +764,7 @@ const A = {
     inp.value = fmtW(w); syncSave(d.id);
   },
   saveW: el => saveWeight(el.dataset.id),
+  setX: el => { el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); syncSave(el.dataset.id); },
   newDev: el => devForm(null, el.dataset.id),
   editDev: el => devForm(el.dataset.id),
   delDev: el => {
@@ -757,7 +779,7 @@ const A = {
   showAll: el => { ui.showAll[el.dataset.id] = true; render(); },
   delLog: el => {
     const l = S.logs.find(x => x.id === el.dataset.id);
-    askConfirm('Eintrag löschen?', `${fmtW(l.weight)} kg vom ${fmtD(l.date)} wird gelöscht.`, 'Löschen', () => {
+    askConfirm('Eintrag löschen?', `${wx(l)} vom ${fmtD(l.date)} wird gelöscht.`, 'Löschen', () => {
       S.logs = S.logs.filter(x => x.id !== l.id); save(); render();
     });
   },
