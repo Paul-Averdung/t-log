@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="T-Log">
+<meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>T-Log</title>
+<style>
+:root{
+  --bg:#f4f4f5; --card:#fff; --text:#18181b; --soft:#71717a; --line:#e4e4e7;
+  --accent:#18181b; --accent-text:#fff; --ok:#15803d; --ok-bg:#dcfce7; --danger:#dc2626;
+  --field:#f4f4f5; --warn-bg:#fef3c7; --warn:#92400e;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#111113; --card:#1c1c1f; --text:#f4f4f5; --soft:#a1a1aa; --line:#2e2e33;
+    --accent:#f4f4f5; --accent-text:#111113; --ok:#4ade80; --ok-bg:#14532d; --danger:#f87171;
+    --field:#27272a; --warn-bg:#422006; --warn:#fcd34d;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom));-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+input,textarea{font:inherit;color:var(--text)}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);
+  padding:calc(12px + env(safe-area-inset-top)) 16px 10px}
+.head-inner{max-width:560px;margin:0 auto}
+h1{font-size:30px;margin:6px 0 10px;font-weight:700;letter-spacing:-.02em}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;
+  padding:7px 13px;font-size:14px;display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.chip .lbl{color:var(--soft)}
+.chip b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .car{color:var(--soft);font-size:11px}
+.back{background:none;border:0;padding:4px 0;color:var(--soft);font-size:15px}
+
+main{padding:4px 16px 24px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border-radius:14px;margin-bottom:10px;border:1px solid var(--line);overflow:hidden}
+.sec{font-size:13px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:22px 4px 8px}
+.sec:first-child{margin-top:6px}
+
+.row{display:flex;align-items:center;gap:12px;padding:14px 16px;width:100%;background:none;border:0;text-align:left}
+.row + .row{border-top:1px solid var(--line)}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.row .s{font-size:13px;color:var(--soft);margin-top:1px}
+.row .r{color:var(--soft);font-size:14px;white-space:nowrap}
+.chev{color:var(--soft);font-size:20px;line-height:1}
+.check{width:24px;height:24px;border-radius:50%;background:var(--ok-bg);color:var(--ok);
+  display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex:none}
+.tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--field);color:var(--soft);margin-left:6px;vertical-align:2px}
+
+.exw + .exw{border-top:1px solid var(--line)}
+.ex-body{border-top:1px solid var(--line);padding:4px 16px 14px}
+.dev{padding:12px 0;border-bottom:1px solid var(--line)}
+.dev:last-of-type{border-bottom:0}
+.dev-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.dev-name{background:none;border:0;padding:0;font-weight:600;text-align:left;font-size:16px}
+.dev-name .dots{color:var(--soft);font-weight:400;margin-left:4px}
+.dev-last{font-size:13px;color:var(--soft);white-space:nowrap}
+.dev-last .up{color:var(--ok);font-weight:600}
+.dev-note{font-size:13px;color:var(--soft);margin-top:3px;white-space:pre-wrap}
+.dev-note:before{content:"📝 "}
+.dev-input{display:flex;gap:8px;margin-top:10px;align-items:stretch}
+.step{width:46px;border:1px solid var(--line);background:var(--field);border-radius:10px;font-size:22px;flex:none}
+.wfield{flex:1;display:flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:0 12px;min-width:0}
+.wfield input{flex:1;min-width:0;border:0;background:none;font-size:20px;font-weight:600;padding:9px 0;outline:none;text-align:center}
+.wfield span{color:var(--soft);font-size:14px}
+.save{border:0;border-radius:10px;background:var(--accent);color:var(--accent-text);padding:0 14px;font-weight:600;font-size:15px;min-width:96px;flex:none}
+.save.done{background:var(--ok-bg);color:var(--ok)}
+.ex-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.lnk{background:none;border:1px dashed var(--line);border-radius:10px;padding:9px 12px;font-size:14px;color:var(--soft);flex:1;white-space:nowrap}
+.hint{font-size:14px;color:var(--soft);padding:12px 0 4px}
+
+.btn{display:block;width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:13px;font-weight:600;font-size:16px;text-align:center;margin-top:8px}
+.btn.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.ghost{background:none;border:0;color:var(--soft);font-weight:500}
+.empty{text-align:center;padding:40px 16px}
+.empty h2{font-size:20px;margin:0 0 6px}
+.empty p{color:var(--soft);margin:0 0 18px}
+.banner{display:block;width:100%;text-align:left;background:var(--warn-bg);color:var(--warn);border:0;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:10px}
+
+.pe-row{display:flex;align-items:center;gap:6px;padding:10px 12px 10px 16px}
+.pe-row + .pe-row{border-top:1px solid var(--line)}
+.pe-row .main{flex:1;min-width:0}
+.ib{width:36px;height:36px;border:0;background:var(--field);border-radius:9px;font-size:15px;color:var(--soft);flex:none}
+.ib:disabled{opacity:.3}
+
+.chart{width:100%;height:auto;display:block;margin:6px 0 2px}
+.chart .ln{fill:none;stroke:var(--text);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .dt{fill:var(--text)}
+.chart .gr{stroke:var(--line);stroke-width:1}
+.chart text{fill:var(--soft);font-size:10px}
+.stats{display:flex;gap:8px;margin:10px 0 4px}
+.stat{flex:1;background:var(--field);border-radius:10px;padding:8px 10px}
+.stat .k{font-size:11px;color:var(--soft)}
+.stat .v{font-weight:700}
+.loglist{margin-top:6px}
+.log{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.log .d{color:var(--soft)}
+.log button{background:none;border:0;color:var(--soft);font-size:16px;padding:2px 6px}
+.hist-dev{padding:14px 16px}
+.hist-dev + .hist-dev{border-top:1px solid var(--line)}
+.more{background:none;border:0;color:var(--soft);font-size:14px;padding:8px 0 0}
+
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+nav .in{display:flex;max-width:560px;margin:0 auto}
+nav button{flex:1;background:none;border:0;padding:8px 0 7px;font-size:11px;color:var(--soft);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.on{color:var(--text);font-weight:600}
+nav svg{width:24px;height:24px}
+
+#backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .18s}
+#backdrop.show{opacity:1;pointer-events:auto}
+#sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;max-height:88vh;overflow-y:auto;
+  padding:8px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(30px);transition:transform .2s}
+#backdrop.show #sheet{transform:none}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:2px auto 12px}
+.sh-title{font-size:19px;font-weight:700;margin:0 0 4px}
+.sh-sub{color:var(--soft);font-size:14px;margin:0 0 12px}
+.field{display:block;margin-top:12px}
+.field span{display:block;font-size:13px;color:var(--soft);margin-bottom:5px}
+.field input,.field textarea{width:100%;border:1px solid var(--line);background:var(--field);border-radius:10px;padding:11px 12px;font-size:16px;outline:none}
+.field textarea{resize:vertical;min-height:70px}
+.two{display:flex;gap:10px}
+.two .field{flex:1}
+.opt{display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--field);border:0;border-radius:11px;padding:13px 14px;margin-top:8px;text-align:left;font-size:16px}
+.opt.sel{outline:2px solid var(--text)}
+.opt small{color:var(--soft)}
+.code{width:100%;font:12px ui-monospace,Menlo,monospace;word-break:break-all;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px;height:90px;margin-top:8px;color:var(--soft)}
+
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,10px);background:var(--accent);color:var(--accent-text);
+  padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .2s;z-index:30;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<header><div class="head-inner" id="head"></div></header>
+<main id="view"></main>
+<nav><div class="in" id="tabs">
+  <button data-act="tab" data-tab="training"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Training</button>
+  <button data-act="tab" data-tab="verlauf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 19.5h17"/><path d="M5 15.5l4.5-5 4 3 6-7"/></svg>Verlauf</button>
+  <button data-act="tab" data-tab="plaene"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/></svg>Pläne</button>
+  <button data-act="tab" data-tab="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></svg>Mehr</button>
+</div></nav>
+<div id="backdrop"><div id="sheet"></div></div>
+<div id="toast"></div>
+<input type="file" id="file" accept=".json,application/json,text/plain" hidden>
+
+<script>
+'use strict';
+/* ───────────── Daten ───────────── */
+const KEY = 'training-data-v1';
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+
+function fresh() {
+  const g = { id: uid(), name: 'Mein Gym' };
+  return { v: 1, gyms: [g], exercises: [], plans: [], devices: [], logs: [],
+           settings: { gymId: g.id, planId: null, lastBackup: null } };
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && d.v === 1 && Array.isArray(d.gyms)) return d;
+  } catch (e) {}
+  return fresh();
+}
+let S = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { toast('Speichern fehlgeschlagen'); }
+}
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+const gym  = id => S.gyms.find(x => x.id === id);
+const ex   = id => S.exercises.find(x => x.id === id);
+const plan = id => S.plans.find(x => x.id === id);
+const dev  = id => S.devices.find(x => x.id === id);
+const devicesFor = (exId, gymId) => S.devices.filter(d => d.exerciseId === exId && d.gymId === gymId);
+const logsFor = devId => S.logs.filter(l => l.deviceId === devId).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.ts - b.ts);
+
+// sicherstellen, dass das gewählte Gym existiert
+if (!gym(S.settings.gymId)) { if (!S.gyms.length) S.gyms.push({ id: uid(), name: 'Mein Gym' }); S.settings.gymId = S.gyms[0].id; save(); }
+
+/* ───────────── Helfer ───────────── */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtW = w => (Math.round(w * 100) / 100).toLocaleString('de-DE', { maximumFractionDigits: 2 });
+const parseW = s => { const n = parseFloat(String(s).replace(',', '.').replace(/[^\d.]/g, '')); return isFinite(n) ? n : NaN; };
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fmtD(iso) {
+  const [y, m, d] = iso.split('-');
+  if (iso === today()) return 'heute';
+  return d + '.' + m + '.' + (y == new Date().getFullYear() ? '' : y.slice(2));
+}
+const range = e => (e.repMin === e.repMax || !e.repMax) ? String(e.repMin) : e.repMin + '–' + e.repMax;
+const scheme = e => (e.sets ? e.sets + ' × ' : '') + range(e) + ' Wdh.';
+const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ───────────── UI-Zustand ───────────── */
+const ui = { tab: 'training', open: null, histEx: null, planEdit: null, ctx: null, confirmFn: null, showAll: {} };
+
+function render() {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === ui.tab));
+  const v = { training: viewTraining, verlauf: viewVerlauf, plaene: viewPlaene, mehr: viewMehr }[ui.tab]();
+  $('#head').innerHTML = v.head;
+  $('#view').innerHTML = v.body;
+}
+
+/* ───────────── Training ───────────── */
+function viewTraining() {
+  const g = gym(S.settings.gymId), p = plan(S.settings.planId);
+  const head = `<h1>Training</h1><div class="chips">
+    <button class="chip" data-act="pickGym"><span class="lbl">Gym</span><b>${esc(g.name)}</b><span class="car">▼</span></button>
+    ${S.plans.length ? `<button class="chip" data-act="pickPlan"><span class="lbl">Plan</span><b>${p ? esc(p.name) : 'wählen'}</b><span class="car">▼</span></button>` : ''}
+  </div>`;
+  let body = backupBanner();
+  if (!S.plans.length) {
+    body += empty('Noch kein Trainingsplan', 'Leg einen Plan an und füge deine Übungen hinzu.', `<button class="btn primary" data-act="newPlan">Plan anlegen</button>`);
+  } else if (!p) {
+    body += `<div class="sec">Was trainierst du heute?</div><div class="card">` +
+      S.plans.map(x => `<button class="row" data-act="setPlan" data-id="${x.id}"><div class="main"><div class="t">${esc(x.name)}</div><div class="s">${plural(x.exerciseIds.length, 'Übung', 'Übungen')}</div></div><span class="chev">›</span></button>`).join('') + `</div>`;
+  } else if (!p.exerciseIds.length) {
+    body += empty('Der Plan ist noch leer', 'Füge Übungen hinzu, dann tauchen sie hier auf.', `<button class="btn primary" data-act="editPlan" data-id="${p.id}">Übungen hinzufügen</button>`);
+  } else {
+    body += `<div class="card">` + p.exerciseIds.map(ex).filter(Boolean).map(exCard).join('') + `</div>`;
+    body += `<button class="btn ghost" data-act="editPlan" data-id="${p.id}">Plan bearbeiten</button>`;
+  }
+  return { head, body };
+}
+
+function exCard(e) {
+  const devs = devicesFor(e.id, S.settings.gymId), t = today();
+  const done = devs.some(d => S.logs.some(l => l.deviceId === d.id && l.date === t));
+  const open = ui.open === e.id;
+  let h = `<button class="row" data-act="toggleEx" data-id="${e.id}">
+    <div class="main"><div class="t">${esc(e.name)}</div>
+    <div class="s">${scheme(e)}${devs.length ? ' · ' + plural(devs.length, 'Gerät', 'Geräte') : ''}</div></div>
+    ${done ? '<span class="check">✓</span>' : `<span class="chev">${open ? '⌄' : '›'}</span>`}
+  </button>`;
+  if (open) {
+    h += `<div class="ex-body">`;
+    h += devs.length ? devs.map(devRow).join('') : `<div class="hint">In diesem Gym hast du für diese Übung noch kein Gerät angelegt.</div>`;
+    h += `<div class="ex-actions">
+      <button class="lnk" data-act="newDev" data-id="${e.id}">+ Gerät</button>
+      <button class="lnk" data-act="hist" data-id="${e.id}">Verlauf ›</button>
+    </div></div>`;
+  }
+  return `<div class="exw">${h}</div>`;
+}
+
+function devRow(d) {
+  const ls = logsFor(d.id), t = today();
+  const todayLog = ls.find(l => l.date === t);
+  const prev = ls.filter(l => l.date !== t).pop();
+  const val = todayLog ? todayLog.weight : prev ? prev.weight : '';
+  let info = prev ? `${fmtW(prev.weight)} kg · ${fmtD(prev.date)}` : 'noch kein Eintrag';
+  if (todayLog && prev && todayLog.weight !== prev.weight) {
+    const diff = todayLog.weight - prev.weight;
+    info = `<span class="up">${diff > 0 ? '+' : '−'}${fmtW(Math.abs(diff))}</span> · vorher ${fmtW(prev.weight)} kg`;
+  }
+  return `<div class="dev">
+    <div class="dev-top">
+      <button class="dev-name" data-act="editDev" data-id="${d.id}">${esc(d.name)}<span class="dots">⋯</span></button>
+      <span class="dev-last">${info}</span>
+    </div>
+    ${d.note ? `<div class="dev-note">${esc(d.note)}</div>` : ''}
+    <div class="dev-input">
+      <button class="step" data-act="step" data-id="${d.id}" data-dir="-1" aria-label="weniger">−</button>
+      <label class="wfield"><input inputmode="decimal" enterkeyhint="done" autocomplete="off" data-wfor="${d.id}" value="${val !== '' ? fmtW(val) : ''}" placeholder="0"><span>kg</span></label>
+      <button class="step" data-act="step" data-id="${d.id}" data-dir="1" aria-label="mehr">+</button>
+      <button class="save${todayLog ? ' done' : ''}" data-act="saveW" data-id="${d.id}">${todayLog ? '✓ Heute' : 'Speichern'}</button>
+    </div>
+  </div>`;
+}
+
+function syncSave(devId) {
+  const inp = document.querySelector(`[data-wfor="${devId}"]`), btn = document.querySelector(`[data-act="saveW"][data-id="${devId}"]`);
+  if (!inp || !btn) return;
+  const tl = S.logs.find(l => l.deviceId === devId && l.date === today());
+  const same = tl && parseW(inp.value) === tl.weight;
+  btn.classList.toggle('done', !!same);
+  btn.textContent = same ? '✓ Heute' : 'Speichern';
+}
+
+function saveWeight(devId) {
+  const inp = document.querySelector(`[data-wfor="${devId}"]`);
+  const w = parseW(inp.value);
+  if (!isFinite(w) || w < 0) { toast('Bitte ein Gewicht eingeben'); inp.focus(); return; }
+  const t = today();
+  const ex0 = S.logs.find(l => l.deviceId === devId && l.date === t);
+  if (ex0) { ex0.weight = w; ex0.ts = Date.now(); }
+  else S.logs.push({ id: uid(), deviceId: devId, date: t, ts: Date.now(), weight: w });
+  save(); inp.blur(); render();
+  toast(`Gespeichert: ${fmtW(w)} kg`);
+}
+
+/* ───────────── Verlauf ───────────── */
+function viewVerlauf() {
+  if (ui.histEx && ex(ui.histEx)) return viewHistDetail(ex(ui.histEx));
+  const head = `<h1>Verlauf</h1>`;
+  const used = S.exercises.filter(e => S.devices.some(d => d.exerciseId === e.id));
+  if (!used.length) return { head, body: empty('Noch nichts zu sehen', 'Sobald du Gewichte einträgst, siehst du hier deinen Fortschritt.', '') };
+  // nach Plan sortiert, dann Rest
+  const order = [];
+  S.plans.forEach(p => p.exerciseIds.forEach(id => { if (!order.includes(id)) order.push(id); }));
+  used.sort((a, b) => (order.indexOf(a.id) + 1 || 999) - (order.indexOf(b.id) + 1 || 999) || a.name.localeCompare(b.name));
+  const body = `<div class="card">` + used.map(e => {
+    const devIds = S.devices.filter(d => d.exerciseId === e.id).map(d => d.id);
+    const ls = S.logs.filter(l => devIds.includes(l.deviceId));
+    const last = ls.sort((a, b) => a.date < b.date ? 1 : -1)[0];
+    return `<button class="row" data-act="hist" data-id="${e.id}"><div class="main"><div class="t">${esc(e.name)}</div>
+      <div class="s">${ls.length ? plural(ls.length, 'Eintrag', 'Einträge') + ' · zuletzt ' + fmtD(last.date) : 'noch keine Einträge'}</div></div><span class="chev">›</span></button>`;
+  }).join('') + `</div>`;
+  return { head, body };
+}
+
+function viewHistDetail(e) {
+  const head = `<button class="back" data-act="histBack">‹ Verlauf</button><h1>${esc(e.name)}</h1><div class="s" style="color:var(--soft);margin-top:-6px">${scheme(e)}</div>`;
+  const devs = S.devices.filter(d => d.exerciseId === e.id);
+  if (!devs.length) return { head, body: empty('Keine Geräte', 'Für diese Übung ist noch kein Gerät angelegt.', '') };
+  const gyms = [...new Set(devs.map(d => d.gymId))].sort((a, b) => (b === S.settings.gymId) - (a === S.settings.gymId));
+  let body = '';
+  gyms.forEach(gid => {
+    const g = gym(gid);
+    body += `<div class="sec">${esc(g ? g.name : 'Gym')}</div><div class="card">`;
+    devs.filter(d => d.gymId === gid).forEach(d => {
+      const ls = logsFor(d.id);
+      body += `<div class="hist-dev"><div class="dev-top"><button class="dev-name" data-act="editDev" data-id="${d.id}">${esc(d.name)}<span class="dots">⋯</span></button></div>`;
+      if (!ls.length) { body += `<div class="hint">Noch keine Einträge.</div></div>`; return; }
+      const first = ls[0], last = ls[ls.length - 1], best = Math.max(...ls.map(l => l.weight));
+      const diff = last.weight - first.weight;
+      body += `<div class="stats">
+        <div class="stat"><div class="k">Aktuell</div><div class="v">${fmtW(last.weight)} kg</div></div>
+        <div class="stat"><div class="k">Bestwert</div><div class="v">${fmtW(best)} kg</div></div>
+        <div class="stat"><div class="k">Seit Start</div><div class="v">${diff >= 0 ? '+' : '−'}${fmtW(Math.abs(diff))} kg</div></div>
+      </div>`;
+      body += chart(ls);
+      const all = ui.showAll[d.id], rev = ls.slice().reverse(), shown = all ? rev : rev.slice(0, 5);
+      body += `<div class="loglist">` + shown.map(l => `<div class="log"><span class="d">${fmtD(l.date)}</span><span><b>${fmtW(l.weight)} kg</b><button data-act="delLog" data-id="${l.id}" aria-label="Eintrag löschen">✕</button></span></div>`).join('') + `</div>`;
+      if (rev.length > 5 && !all) body += `<button class="more" data-act="showAll" data-id="${d.id}">Alle ${rev.length} Einträge zeigen</button>`;
+      body += `</div>`;
+    });
+    body += `</div>`;
+  });
+  return { head, body };
+}
+
+function chart(ls) {
+  if (ls.length < 2) return '';
+  const W = 320, H = 130, L = 32, R = 8, T = 10, B = 20;
+  const xs = ls.map(l => new Date(l.date + 'T12:00').getTime()), ys = ls.map(l => l.weight);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs); if (x0 === x1) x1 = x0 + 1;
+  let y0 = Math.min(...ys), y1 = Math.max(...ys); if (y0 === y1) { y0 -= 2.5; y1 += 2.5; }
+  const pad = (y1 - y0) * .12; y0 = Math.max(0, y0 - pad); y1 += pad;
+  const px = x => L + (x - x0) / (x1 - x0) * (W - L - R), py = y => T + (1 - (y - y0) / (y1 - y0)) * (H - T - B);
+  const pts = ls.map((l, i) => [px(xs[i]), py(ys[i])]);
+  const mid = (y0 + y1) / 2;
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewichtsverlauf">`;
+  [y1, mid, y0].forEach(v => { const y = py(v); s += `<line class="gr" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text x="${L - 4}" y="${y + 3}" text-anchor="end">${fmtW(Math.round(v * 2) / 2)}</text>`; });
+  s += `<polyline class="ln" points="${pts.map(p => p.join(',')).join(' ')}"/>`;
+  if (pts.length <= 40) pts.forEach(p => s += `<circle class="dt" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`);
+  s += `<text x="${L}" y="${H - 4}">${fmtD(ls[0].date)}</text><text x="${W - R}" y="${H - 4}" text-anchor="end">${fmtD(ls[ls.length - 1].date)}</text></svg>`;
+  return s;
+}
+
+/* ───────────── Pläne ───────────── */
+function viewPlaene() {
+  if (ui.planEdit && plan(ui.planEdit)) return viewPlanEdit(plan(ui.planEdit));
+  const head = `<h1>Pläne</h1>`;
+  let body = '';
+  if (!S.plans.length) body = empty('Noch kein Plan', 'Zum Beispiel „Push“, „Pull“, „Beine“ oder „Ganzkörper“.', `<button class="btn primary" data-act="newPlan">Plan anlegen</button>`);
+  else {
+    body = `<div class="card">` + S.plans.map(p => `<button class="row" data-act="editPlan" data-id="${p.id}"><div class="main"><div class="t">${esc(p.name)}${p.id === S.settings.planId ? '<span class="tag">aktiv</span>' : ''}</div><div class="s">${plural(p.exerciseIds.length, 'Übung', 'Übungen')}</div></div><span class="chev">›</span></button>`).join('') + `</div>`;
+    body += `<button class="btn" data-act="newPlan">+ Neuer Plan</button>`;
+  }
+  return { head, body };
+}
+
+function viewPlanEdit(p) {
+  const head = `<button class="back" data-act="planBack">‹ Pläne</button><h1>${esc(p.name)}</h1>`;
+  const list = p.exerciseIds.map(ex).filter(Boolean);
+  let body = '';
+  if (list.length) {
+    body += `<div class="card">` + list.map((e, i) => `<div class="pe-row">
+      <div class="main"><div class="t" style="font-weight:600">${esc(e.name)}</div><div class="s" style="font-size:13px;color:var(--soft)">${scheme(e)}</div></div>
+      <button class="ib" data-act="moveEx" data-id="${e.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="nach oben">↑</button>
+      <button class="ib" data-act="moveEx" data-id="${e.id}" data-dir="1" ${i === list.length - 1 ? 'disabled' : ''} aria-label="nach unten">↓</button>
+      <button class="ib" data-act="editEx" data-id="${e.id}" aria-label="bearbeiten">✎</button>
+    </div>`).join('') + `</div>`;
+  } else body += `<div class="hint" style="padding:8px 4px 4px">Noch keine Übungen in diesem Plan.</div>`;
+  body += `<button class="btn primary" data-act="addEx">+ Übung hinzufügen</button>`;
+  if (S.settings.planId !== p.id) body += `<button class="btn" data-act="usePlan" data-id="${p.id}">Als aktuellen Plan wählen</button>`;
+  body += `<button class="btn" data-act="sharePlan" data-id="${p.id}">Plan teilen</button>`;
+  body += `<button class="btn" data-act="renamePlan" data-id="${p.id}">Umbenennen</button>`;
+  body += `<button class="btn danger" data-act="delPlan" data-id="${p.id}">Plan löschen</button>`;
+  return { head, body };
+}
+
+/* ───────────── Mehr ───────────── */
+function viewMehr() {
+  const head = `<h1>Mehr</h1>`;
+  let body = `<div class="sec">Gyms</div><div class="card">` + S.gyms.map(g => {
+    const n = S.devices.filter(d => d.gymId === g.id).length;
+    return `<button class="row" data-act="editGym" data-id="${g.id}"><div class="main"><div class="t">${esc(g.name)}${g.id === S.settings.gymId ? '<span class="tag">aktuell</span>' : ''}</div><div class="s">${plural(n, 'Gerät', 'Geräte')}</div></div><span class="chev">›</span></button>`;
+  }).join('') + `</div><button class="btn" data-act="newGym">+ Gym hinzufügen</button>`;
+
+  body += `<div class="sec">Plan teilen</div><div class="card">
+    <button class="row" data-act="shareMenu"><div class="main"><div class="t">Plan an Freunde schicken</div><div class="s">Mit allen Übungen und Geräten – ohne deine Gewichte</div></div><span class="chev">›</span></button>
+    <button class="row" data-act="importSheet"><div class="main"><div class="t">Plan importieren</div><div class="s">Code von einem Freund einfügen</div></div><span class="chev">›</span></button>
+  </div>`;
+
+  const lb = S.settings.lastBackup;
+  body += `<div class="sec">Backup</div><div class="card">
+    <button class="row" data-act="backupExport"><div class="main"><div class="t">Backup speichern</div><div class="s">${lb ? 'Letztes Backup: ' + new Date(lb).toLocaleDateString('de-DE') : 'Noch nie gesichert'}</div></div><span class="chev">›</span></button>
+    <button class="row" data-act="backupImport"><div class="main"><div class="t">Backup laden</div><div class="s">Ersetzt alle Daten auf diesem Gerät</div></div><span class="chev">›</span></button>
+  </div>
+  <p style="color:var(--soft);font-size:13px;margin:14px 4px">Alle Daten liegen nur auf diesem Gerät. Speichere ab und zu ein Backup in „Dateien“ oder iCloud, damit beim Handywechsel nichts verloren geht.</p>`;
+  return { head, body };
+}
+
+function backupBanner() {
+  if (S.logs.length < 5) return '';
+  const lb = S.settings.lastBackup;
+  if (lb && Date.now() - lb < 30 * 864e5) return '';
+  return `<button class="banner" data-act="backupExport">💾 ${lb ? 'Dein letztes Backup ist über einen Monat alt.' : 'Du hast noch kein Backup.'} Jetzt sichern ›</button>`;
+}
+
+const empty = (t, p, extra) => `<div class="empty"><h2>${t}</h2><p>${p}</p>${extra}</div>`;
+
+/* ───────────── Sheets ───────────── */
+function openSheet(html) {
+  $('#sheet').innerHTML = `<div class="grab"></div>` + html;
+  $('#backdrop').classList.add('show');
+  const f = $('#sheet [autofocus]'); if (f) setTimeout(() => f.focus(), 60);
+}
+function closeSheet() { $('#backdrop').classList.remove('show'); }
+$('#backdrop').addEventListener('click', e => { if (e.target.id === 'backdrop') closeSheet(); });
+
+function askConfirm(title, text, ok, fn) {
+  ui.confirmFn = fn;
+  openSheet(`<div class="sh-title">${title}</div><p class="sh-sub">${text}</p>
+    <button class="btn primary" style="background:var(--danger);border-color:var(--danger);color:#fff" data-act="confirmOk">${ok}</button>
+    <button class="btn ghost" data-act="closeSheet">Abbrechen</button>`);
+}
+
+const field = (name, label, value, attrs = '') => `<label class="field"><span>${label}</span><input name="${name}" value="${esc(value)}" ${attrs}></label>`;
+
+function gymForm(id) {
+  const g = id ? gym(id) : null; ui.ctx = { id };
+  const n = g ? S.devices.filter(d => d.gymId === g.id).length : 0;
+  openSheet(`<form data-form="gym"><div class="sh-title">${g ? 'Gym bearbeiten' : 'Neues Gym'}</div>
+    ${field('name', 'Name', g ? g.name : '', 'required autocomplete="off" placeholder="z. B. McFit Bergheim" ' + (g ? '' : 'autofocus'))}
+    <button class="btn primary" type="submit">Speichern</button>
+    ${g && g.id !== S.settings.gymId ? `<button class="btn" data-act="setGym" data-id="${g.id}">Als aktuelles Gym wählen</button>` : ''}
+    ${g && S.gyms.length > 1 ? `<button class="btn danger" data-act="delGym" data-id="${g.id}">Gym löschen${n ? ` (${plural(n, 'Gerät', 'Geräte')})` : ''}</button>` : ''}
+    <button class="btn ghost" data-act="closeSheet">Abbrechen</button></form>`);
+}
+
+function planForm(id) {
+  const p = id ? plan(id) : null; ui.ctx = { id };
+  openSheet(`<form data-form="plan"><div class="sh-title">${p ? 'Plan umbenennen' : 'Neuer Plan'}</div>
+    ${field('name', 'Name', p ? p.name : '', 'required autocomplete="off" autofocus placeholder="z. B. Push, Pull, Beine"')}
+    <button class="btn primary" type="submit">${p ? 'Speichern' : 'Anlegen'}</button>
+    <button class="btn ghost" data-act="closeSheet">Abbrechen</button></form>`);
+}
+
+function exForm(id, planId) {
+  const e = id ? ex(id) : null; ui.ctx = { id, planId };
+  const others = planId ? S.exercises.filter(x => !plan(planId).exerciseIds.includes(x.id)) : [];
+  openSheet(`<form data-form="ex"><div class="sh-title">${e ? 'Übung bearbeiten' : 'Neue Übung'}</div>
+    ${field('name', 'Name', e ? e.name : '', 'required autocomplete="off" placeholder="z. B. Brustpresse" ' + (e ? '' : 'autofocus'))}
+    <div class="two">
+      ${field('sets', 'Sätze', e ? (e.sets || '') : 3, 'inputmode="numeric" placeholder="3"')}
+      ${field('reps', 'Wiederholungen', e ? range(e).replace('–', '-') : '8-10', 'required inputmode="text" placeholder="8-10"')}
+    </div>
+    <button class="btn primary" type="submit">${e ? 'Speichern' : 'Hinzufügen'}</button>
+    ${e ? `<button class="btn danger" data-act="removeEx" data-id="${e.id}">${ui.planEdit ? 'Aus dem Plan entfernen' : 'Übung löschen'}</button>` : ''}
+    <button class="btn ghost" data-act="closeSheet">Abbrechen</button>
+    ${others.length ? `<div class="sec">Oder vorhandene Übung</div>` + others.map(x => `<button class="opt" data-act="pickEx" data-id="${x.id}">${esc(x.name)} <small>${scheme(x)}</small></button>`).join('') : ''}
+  </form>`);
+}
+
+function devForm(id, exId) {
+  const d = id ? dev(id) : null; ui.ctx = { id, exId };
+  const e = ex(d ? d.exerciseId : exId), g = gym(d ? d.gymId : S.settings.gymId);
+  openSheet(`<form data-form="dev"><div class="sh-title">${d ? 'Gerät bearbeiten' : 'Neues Gerät'}</div>
+    <p class="sh-sub">${esc(e.name)} · ${esc(g ? g.name : '')}</p>
+    ${field('name', 'Name', d ? d.name : '', 'required autocomplete="off" placeholder="z. B. Gym80 Maschine, Kabelzug links" ' + (d ? '' : 'autofocus'))}
+    <label class="field"><span>Notiz (Sitzhöhe, Einstellung …)</span><textarea name="note" rows="2" placeholder="z. B. Sitz Stufe 4, Polster 2">${esc(d ? d.note : '')}</textarea></label>
+    ${field('step', 'Schritt bei + / − (kg)', fmtW(d ? (d.step || 2.5) : 2.5), 'inputmode="decimal"')}
+    <button class="btn primary" type="submit">Speichern</button>
+    ${d ? `<button class="btn" data-act="hist" data-id="${d.exerciseId}">Verlauf ansehen</button>
+           <button class="btn danger" data-act="delDev" data-id="${d.id}">Gerät löschen</button>` : ''}
+    <button class="btn ghost" data-act="closeSheet">Abbrechen</button></form>`);
+}
+
+function pickList(kind) {
+  const isGym = kind === 'gym';
+  const items = isGym ? S.gyms : S.plans, cur = isGym ? S.settings.gymId : S.settings.planId;
+  openSheet(`<div class="sh-title">${isGym ? 'In welchem Gym bist du?' : 'Was trainierst du?'}</div>` +
+    items.map(x => `<button class="opt${x.id === cur ? ' sel' : ''}" data-act="${isGym ? 'setGym' : 'setPlan'}" data-id="${x.id}">${esc(x.name)} <small>${x.id === cur ? '✓' : isGym ? plural(S.devices.filter(d => d.gymId === x.id).length, 'Gerät', 'Geräte') : plural(x.exerciseIds.length, 'Übung', 'Übungen')}</small></button>`).join('') +
+    `<button class="btn" data-act="${isGym ? 'newGym' : 'newPlan'}">+ ${isGym ? 'Neues Gym' : 'Neuer Plan'}</button>
+     <button class="btn ghost" data-act="closeSheet">Schließen</button>`);
+}
+
+/* ───────────── Formulare ───────────── */
+const F = {
+  gym(d) {
+    const name = d.name.trim(); if (!name) return;
+    if (ui.ctx.id) gym(ui.ctx.id).name = name;
+    else { const g = { id: uid(), name }; S.gyms.push(g); S.settings.gymId = g.id; toast('Gym angelegt und ausgewählt'); }
+    save(); closeSheet(); render();
+  },
+  plan(d) {
+    const name = d.name.trim(); if (!name) return;
+    if (ui.ctx.id) plan(ui.ctx.id).name = name;
+    else {
+      const p = { id: uid(), name, exerciseIds: [] }; S.plans.push(p);
+      if (!plan(S.settings.planId)) S.settings.planId = p.id;
+      ui.tab = 'plaene'; ui.planEdit = p.id;
+    }
+    save(); closeSheet(); render();
+  },
+  ex(d) {
+    const name = d.name.trim(); if (!name) return;
+    const m = String(d.reps).match(/(\d+)\s*(?:[-–—bis]+\s*(\d+))?/);
+    if (!m) { toast('Wiederholungen z. B. als 8-10 eingeben'); return; }
+    let a = +m[1], b = m[2] ? +m[2] : a; if (b < a) [a, b] = [b, a];
+    const sets = parseInt(d.sets) || 0;
+    if (ui.ctx.id) Object.assign(ex(ui.ctx.id), { name, sets, repMin: a, repMax: b });
+    else {
+      const e = { id: uid(), name, sets, repMin: a, repMax: b }; S.exercises.push(e);
+      if (ui.ctx.planId) plan(ui.ctx.planId).exerciseIds.push(e.id);
+    }
+    save(); closeSheet(); render();
+  },
+  dev(d) {
+    const name = d.name.trim(); if (!name) return;
+    const step = parseW(d.step); const st = isFinite(step) && step > 0 ? step : 2.5;
+    if (ui.ctx.id) Object.assign(dev(ui.ctx.id), { name, note: d.note.trim(), step: st });
+    else { S.devices.push({ id: uid(), exerciseId: ui.ctx.exId, gymId: S.settings.gymId, name, note: d.note.trim(), step: st }); ui.open = ui.ctx.exId; }
+    save(); closeSheet(); render();
+  },
+};
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  const fn = F[e.target.dataset.form];
+  if (fn) fn(Object.fromEntries(new FormData(e.target)));
+});
+
+/* ───────────── Teilen ───────────── */
+function b64enc(bytes) { let s = ''; bytes = new Uint8Array(bytes); for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function b64dec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; const s = atob(str), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+async function encode(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if (window.CompressionStream) {
+    try { const buf = await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer(); return 'TP1' + b64enc(buf); } catch (e) {}
+  }
+  return 'TP0' + b64enc(bytes);
+}
+async function decode(text) {
+  const m = String(text).replace(/\s+/g, '').match(/TP([01])([A-Za-z0-9_-]+)/);
+  if (!m) throw new Error('Kein Code gefunden');
+  let bytes = b64dec(m[2]);
+  if (m[1] === '1') {
+    if (!window.DecompressionStream) throw new Error('Browser zu alt');
+    bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+async function sharePlan(pid) {
+  const p = plan(pid);
+  const exs = p.exerciseIds.map(ex).filter(Boolean);
+  const devs = S.devices.filter(d => p.exerciseIds.includes(d.exerciseId));
+  const gyms = S.gyms.filter(g => devs.some(d => d.gymId === g.id));
+  const payload = { t: 'plan', v: 1, plan: { id: p.id, name: p.name, exerciseIds: p.exerciseIds }, exercises: exs,
+    gyms: gyms.map(g => ({ id: g.id, name: g.name })),
+    devices: devs.map(d => ({ id: d.id, exerciseId: d.exerciseId, gymId: d.gymId, name: d.name, note: d.note || '', step: d.step || 2.5 })) };
+  const code = await encode(payload);
+  ui.ctx = { msg: `Mein Trainingsplan „${p.name}“ – in der App unter Mehr › Plan importieren einfügen:\n\n${code}` };
+  openSheet(`<div class="sh-title">„${esc(p.name)}“ teilen</div>
+    <p class="sh-sub">${plural(exs.length, 'Übung', 'Übungen')} und ${plural(devs.length, 'Gerät', 'Geräte')}${gyms.length ? ' in ' + gyms.map(g => esc(g.name)).join(', ') : ''}. Deine Gewichte werden nicht mitgeschickt, Notizen schon.</p>
+    ${navigator.share ? `<button class="btn primary" data-act="nativeShare">Teilen …</button>` : ''}
+    <button class="btn${navigator.share ? '' : ' primary'}" data-act="copyCode">Code kopieren</button>
+    <textarea class="code" readonly>${esc(code)}</textarea>
+    <button class="btn ghost" data-act="closeSheet">Schließen</button>`);
+}
+
+function importSheet() {
+  openSheet(`<div class="sh-title">Plan importieren</div>
+    <p class="sh-sub">Füge die Nachricht oder den Code ein, den du bekommen hast.</p>
+    <label class="field"><textarea id="imp" rows="4" placeholder="TP1…" autofocus></textarea></label>
+    <button class="btn primary" data-act="doImport">Importieren</button>
+    <button class="btn ghost" data-act="closeSheet">Abbrechen</button>`);
+}
+
+async function doImport() {
+  let data;
+  try { data = await decode($('#imp').value); } catch (e) { toast('Code ungültig oder unvollständig'); return; }
+  if (!data || data.t !== 'plan') { toast('Das ist kein Plan-Code'); return; }
+  const norm = s => String(s).trim().toLowerCase();
+  const gMap = {}, eMap = {};
+  let nG = 0, nE = 0, nD = 0;
+  (data.gyms || []).forEach(g => {
+    const hit = gym(g.id) || S.gyms.find(x => norm(x.name) === norm(g.name));
+    if (hit) gMap[g.id] = hit.id; else { S.gyms.push({ id: g.id, name: g.name }); gMap[g.id] = g.id; nG++; }
+  });
+  (data.exercises || []).forEach(e => {
+    const hit = ex(e.id) || S.exercises.find(x => norm(x.name) === norm(e.name));
+    if (hit) eMap[e.id] = hit.id; else { S.exercises.push({ id: e.id, name: e.name, sets: e.sets || 0, repMin: e.repMin, repMax: e.repMax }); eMap[e.id] = e.id; nE++; }
+  });
+  (data.devices || []).forEach(d => {
+    const exId = eMap[d.exerciseId], gId = gMap[d.gymId];
+    if (!exId || !gId || dev(d.id)) return;
+    if (S.devices.some(x => x.exerciseId === exId && x.gymId === gId && norm(x.name) === norm(d.name))) return;
+    S.devices.push({ id: d.id, exerciseId: exId, gymId: gId, name: d.name, note: d.note || '', step: d.step || 2.5 }); nD++;
+  });
+  const p = data.plan, ids = p.exerciseIds.map(id => eMap[id]).filter(Boolean);
+  let pl = plan(p.id);
+  if (pl) pl.exerciseIds = [...new Set([...pl.exerciseIds, ...ids])];
+  else { let name = p.name; if (S.plans.some(x => norm(x.name) === norm(name))) name += ' (importiert)'; pl = { id: p.id, name, exerciseIds: ids }; S.plans.push(pl); }
+  if (!plan(S.settings.planId)) S.settings.planId = pl.id;
+  // aktuelles Gym leer? → ins importierte Gym wechseln
+  const firstG = (data.devices || []).map(d => gMap[d.gymId]).find(Boolean);
+  if (firstG && !S.devices.some(d => d.gymId === S.settings.gymId)) S.settings.gymId = firstG;
+  save(); closeSheet(); ui.tab = 'plaene'; ui.planEdit = pl.id; render();
+  toast(`Importiert: ${plural(nE, 'Übung', 'Übungen')}, ${plural(nD, 'Gerät', 'Geräte')}${nG ? ', ' + plural(nG, 'Gym', 'Gyms') : ''}`);
+}
+
+/* ───────────── Backup ───────────── */
+async function backupExport() {
+  const json = JSON.stringify({ t: 'backup', v: 1, date: new Date().toISOString(), data: S });
+  const name = `t-log-backup-${today()}.json`;
+  const file = new File([json], name, { type: 'application/json' });
+  const mark = () => { S.settings.lastBackup = Date.now(); save(); render(); toast('Backup erstellt'); };
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); mark(); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  mark();
+}
+$('#file').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let d;
+  try { d = JSON.parse(await f.text()); } catch (err) { toast('Datei nicht lesbar'); return; }
+  if (!d || d.t !== 'backup' || !d.data || d.data.v !== 1) { toast('Das ist kein Backup dieser App'); return; }
+  const n = d.data.logs.length;
+  askConfirm('Backup laden?', `Backup vom ${new Date(d.date).toLocaleDateString('de-DE')} mit ${plural(n, 'Eintrag', 'Einträgen')}. Alle aktuellen Daten auf diesem Gerät werden ersetzt.`, 'Ersetzen', () => {
+    S = d.data; if (!gym(S.settings.gymId)) S.settings.gymId = S.gyms[0].id;
+    save(); ui.tab = 'training'; ui.open = null; render(); toast('Backup geladen');
+  });
+});
+
+/* ───────────── Aktionen ───────────── */
+const A = {
+  tab: el => { ui.tab = el.dataset.tab; ui.planEdit = null; ui.histEx = null; render(); scrollTo(0, 0); },
+  toggleEx: el => { ui.open = ui.open === el.dataset.id ? null : el.dataset.id; render(); },
+  pickGym: () => pickList('gym'),
+  pickPlan: () => pickList('plan'),
+  setGym: el => { S.settings.gymId = el.dataset.id; save(); closeSheet(); render(); },
+  setPlan: el => { S.settings.planId = el.dataset.id; ui.open = null; save(); closeSheet(); render(); },
+  usePlan: el => { S.settings.planId = el.dataset.id; ui.open = null; save(); ui.tab = 'training'; ui.planEdit = null; render(); },
+  newGym: () => gymForm(null),
+  editGym: el => gymForm(el.dataset.id),
+  delGym: el => {
+    const g = gym(el.dataset.id), devs = S.devices.filter(d => d.gymId === g.id), ids = devs.map(d => d.id);
+    const nl = S.logs.filter(l => ids.includes(l.deviceId)).length;
+    askConfirm(`„${esc(g.name)}“ löschen?`, `Dabei werden ${plural(devs.length, 'Gerät', 'Geräte')} und ${plural(nl, 'Eintrag', 'Einträge')} gelöscht. Das lässt sich nicht rückgängig machen.`, 'Endgültig löschen', () => {
+      S.logs = S.logs.filter(l => !ids.includes(l.deviceId));
+      S.devices = S.devices.filter(d => d.gymId !== g.id);
+      S.gyms = S.gyms.filter(x => x.id !== g.id);
+      if (S.settings.gymId === g.id) S.settings.gymId = S.gyms[0].id;
+      save(); render(); toast('Gym gelöscht');
+    });
+  },
+  newPlan: () => planForm(null),
+  renamePlan: el => planForm(el.dataset.id),
+  editPlan: el => { ui.tab = 'plaene'; ui.planEdit = el.dataset.id; closeSheet(); render(); scrollTo(0, 0); },
+  planBack: () => { ui.planEdit = null; render(); },
+  delPlan: el => {
+    const p = plan(el.dataset.id);
+    askConfirm(`„${esc(p.name)}“ löschen?`, 'Der Plan wird gelöscht. Deine Geräte und eingetragenen Gewichte bleiben erhalten.', 'Plan löschen', () => {
+      S.plans = S.plans.filter(x => x.id !== p.id);
+      if (S.settings.planId === p.id) S.settings.planId = S.plans[0] ? S.plans[0].id : null;
+      cleanupExercises(); save(); ui.planEdit = null; render(); toast('Plan gelöscht');
+    });
+  },
+  addEx: () => exForm(null, ui.planEdit),
+  pickEx: el => { plan(ui.ctx.planId).exerciseIds.push(el.dataset.id); save(); closeSheet(); render(); },
+  editEx: el => exForm(el.dataset.id, null),
+  moveEx: el => {
+    const p = plan(ui.planEdit), a = p.exerciseIds, i = a.indexOf(el.dataset.id), j = i + +el.dataset.dir;
+    if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; save(); render();
+  },
+  removeEx: el => {
+    const id = el.dataset.id;
+    if (ui.planEdit) { const p = plan(ui.planEdit); p.exerciseIds = p.exerciseIds.filter(x => x !== id); cleanupExercises(); save(); closeSheet(); render(); }
+  },
+  step: el => {
+    const d = dev(el.dataset.id), inp = document.querySelector(`[data-wfor="${d.id}"]`);
+    let w = parseW(inp.value); if (!isFinite(w)) w = 0;
+    w = Math.max(0, Math.round((w + (+el.dataset.dir) * (d.step || 2.5)) * 100) / 100);
+    inp.value = fmtW(w); syncSave(d.id);
+  },
+  saveW: el => saveWeight(el.dataset.id),
+  newDev: el => devForm(null, el.dataset.id),
+  editDev: el => devForm(el.dataset.id),
+  delDev: el => {
+    const d = dev(el.dataset.id), n = S.logs.filter(l => l.deviceId === d.id).length;
+    askConfirm(`„${esc(d.name)}“ löschen?`, n ? `Auch ${plural(n, 'eingetragenes Gewicht', 'eingetragene Gewichte')} werden gelöscht.` : 'Das Gerät wird entfernt.', 'Gerät löschen', () => {
+      S.logs = S.logs.filter(l => l.deviceId !== d.id); S.devices = S.devices.filter(x => x.id !== d.id);
+      save(); render(); toast('Gerät gelöscht');
+    });
+  },
+  hist: el => { ui.tab = 'verlauf'; ui.histEx = el.dataset.id; ui.planEdit = null; closeSheet(); render(); scrollTo(0, 0); },
+  histBack: () => { ui.histEx = null; render(); },
+  showAll: el => { ui.showAll[el.dataset.id] = true; render(); },
+  delLog: el => {
+    const l = S.logs.find(x => x.id === el.dataset.id);
+    askConfirm('Eintrag löschen?', `${fmtW(l.weight)} kg vom ${fmtD(l.date)} wird gelöscht.`, 'Löschen', () => {
+      S.logs = S.logs.filter(x => x.id !== l.id); save(); render();
+    });
+  },
+  sharePlan: el => sharePlan(el.dataset.id),
+  shareMenu: () => {
+    if (!S.plans.length) { toast('Leg zuerst einen Plan an'); return; }
+    openSheet(`<div class="sh-title">Welchen Plan teilen?</div>` + S.plans.map(p => `<button class="opt" data-act="sharePlan" data-id="${p.id}">${esc(p.name)} <small>${plural(p.exerciseIds.length, 'Übung', 'Übungen')}</small></button>`).join('') + `<button class="btn ghost" data-act="closeSheet">Abbrechen</button>`);
+  },
+  nativeShare: async () => { try { await navigator.share({ text: ui.ctx.msg }); } catch (e) {} },
+  copyCode: async () => {
+    try { await navigator.clipboard.writeText(ui.ctx.msg); toast('Kopiert'); }
+    catch (e) { const t = $('#sheet .code'); t.select(); document.execCommand('copy'); toast('Kopiert'); }
+  },
+  importSheet: () => importSheet(),
+  doImport: () => doImport(),
+  backupExport: () => backupExport(),
+  backupImport: () => $('#file').click(),
+  confirmOk: () => { const f = ui.confirmFn; ui.confirmFn = null; closeSheet(); if (f) f(); },
+  closeSheet: () => closeSheet(),
+};
+
+// Übungen ohne Plan und ohne Geräte aufräumen
+function cleanupExercises() {
+  S.exercises = S.exercises.filter(e => S.plans.some(p => p.exerciseIds.includes(e.id)) || S.devices.some(d => d.exerciseId === e.id));
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
+  const f = A[el.dataset.act]; if (f) { e.preventDefault(); f(el); }
+});
+document.addEventListener('input', e => { if (e.target.dataset.wfor) syncSave(e.target.dataset.wfor); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.wfor) { e.preventDefault(); saveWeight(e.target.dataset.wfor); }
+});
+
+render();
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
