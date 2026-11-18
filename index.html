@@ -208,7 +208,8 @@ function fmtD(iso) {
   return d + '.' + m + '.' + (y == new Date().getFullYear() ? '' : y.slice(2));
 }
 const range = e => (e.repMin === e.repMax || !e.repMax) ? String(e.repMin) : e.repMin + '–' + e.repMax;
-const scheme = e => (e.sets ? e.sets + ' × ' : '') + range(e) + ' Wdh.';
+const schemeOf = (e, p) => (p && p.schemes && p.schemes[e.id]) || e;
+const scheme = (e, p) => { const o = schemeOf(e, p); return (o.sets ? o.sets + ' × ' : '') + range(o) + ' Wdh.'; };
 const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
 
 let toastT;
@@ -255,7 +256,7 @@ function exCard(e) {
   const open = ui.open === e.id;
   let h = `<button class="row" data-act="toggleEx" data-id="${e.id}">
     <div class="main"><div class="t">${esc(e.name)}</div>
-    <div class="s">${scheme(e)}${devs.length ? ' · ' + plural(devs.length, 'Gerät', 'Geräte') : ''}</div></div>
+    <div class="s">${scheme(e, plan(S.settings.planId))}${devs.length ? ' · ' + plural(devs.length, 'Gerät', 'Geräte') : ''}</div></div>
     ${done ? '<span class="check">✓</span>' : `<span class="chev">${open ? '⌄' : '›'}</span>`}
   </button>`;
   if (open) {
@@ -403,7 +404,7 @@ function viewPlanEdit(p) {
   let body = '';
   if (list.length) {
     body += `<div class="card">` + list.map((e, i) => `<div class="pe-row">
-      <div class="main"><div class="t" style="font-weight:600">${esc(e.name)}</div><div class="s" style="font-size:13px;color:var(--soft)">${scheme(e)}</div></div>
+      <div class="main"><div class="t" style="font-weight:600">${esc(e.name)}</div><div class="s" style="font-size:13px;color:var(--soft)">${scheme(e, p)}</div></div>
       <button class="ib" data-act="moveEx" data-id="${e.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="nach oben">↑</button>
       <button class="ib" data-act="moveEx" data-id="${e.id}" data-dir="1" ${i === list.length - 1 ? 'disabled' : ''} aria-label="nach unten">↓</button>
       <button class="ib" data-act="editEx" data-id="${e.id}" aria-label="bearbeiten">✎</button>
@@ -487,12 +488,13 @@ function planForm(id) {
 
 function exForm(id, planId) {
   const e = id ? ex(id) : null; ui.ctx = { id, planId };
+  const o = e ? schemeOf(e, plan(ui.planEdit)) : null;
   const others = planId ? S.exercises.filter(x => !plan(planId).exerciseIds.includes(x.id)) : [];
   openSheet(`<form data-form="ex"><div class="sh-title">${e ? 'Übung bearbeiten' : 'Neue Übung'}</div>
     ${field('name', 'Name', e ? e.name : '', 'required autocomplete="off" placeholder="z. B. Brustpresse" ' + (e ? '' : 'autofocus'))}
     <div class="two">
-      ${field('sets', 'Sätze', e ? (e.sets || '') : 3, 'inputmode="numeric" placeholder="3"')}
-      ${field('reps', 'Wiederholungen', e ? range(e).replace('–', '-') : '8-10', 'required inputmode="text" placeholder="8-10"')}
+      ${field('sets', 'Sätze', o ? (o.sets || '') : 3, 'inputmode="numeric" placeholder="3"')}
+      ${field('reps', 'Wiederholungen', o ? range(o).replace('–', '-') : '8-10', 'required inputmode="text" placeholder="8-10"')}
     </div>
     <button class="btn primary" type="submit">${e ? 'Speichern' : 'Hinzufügen'}</button>
     ${e ? `<button class="btn danger" data-act="removeEx" data-id="${e.id}">${ui.planEdit ? 'Aus dem Plan entfernen' : 'Übung löschen'}</button>` : ''}
@@ -548,7 +550,11 @@ const F = {
     if (!m) { toast('Wiederholungen z. B. als 8-10 eingeben'); return; }
     let a = +m[1], b = m[2] ? +m[2] : a; if (b < a) [a, b] = [b, a];
     const sets = parseInt(d.sets) || 0;
-    if (ui.ctx.id) Object.assign(ex(ui.ctx.id), { name, sets, repMin: a, repMax: b });
+    if (ui.ctx.id) {
+      const e = ex(ui.ctx.id), pl = plan(ui.planEdit); e.name = name;
+      if (pl) { pl.schemes = pl.schemes || {}; pl.schemes[e.id] = { sets, repMin: a, repMax: b }; }
+      else Object.assign(e, { sets, repMin: a, repMax: b });
+    }
     else {
       const e = { id: uid(), name, sets, repMin: a, repMax: b }; S.exercises.push(e);
       if (ui.ctx.planId) plan(ui.ctx.planId).exerciseIds.push(e.id);
@@ -595,7 +601,7 @@ async function sharePlan(pid) {
   const exs = p.exerciseIds.map(ex).filter(Boolean);
   const devs = S.devices.filter(d => p.exerciseIds.includes(d.exerciseId));
   const gyms = S.gyms.filter(g => devs.some(d => d.gymId === g.id));
-  const payload = { t: 'plan', v: 1, plan: { id: p.id, name: p.name, exerciseIds: p.exerciseIds }, exercises: exs,
+  const payload = { t: 'plan', v: 1, plans: [{ id: p.id, name: p.name, exerciseIds: p.exerciseIds, schemes: p.schemes || {} }], exercises: exs,
     gyms: gyms.map(g => ({ id: g.id, name: g.name })),
     devices: devs.map(d => ({ id: d.id, exerciseId: d.exerciseId, gymId: d.gymId, name: d.name, note: d.note || '', step: d.step || 2.5 })) };
   const code = await encode(payload);
@@ -631,22 +637,32 @@ async function doImport() {
     const hit = ex(e.id) || S.exercises.find(x => norm(x.name) === norm(e.name));
     if (hit) eMap[e.id] = hit.id; else { S.exercises.push({ id: e.id, name: e.name, sets: e.sets || 0, repMin: e.repMin, repMax: e.repMax }); eMap[e.id] = e.id; nE++; }
   });
+  const y = new Date(Date.now() - 864e5);
+  const yday = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
   (data.devices || []).forEach(d => {
     const exId = eMap[d.exerciseId], gId = gMap[d.gymId];
     if (!exId || !gId || dev(d.id)) return;
     if (S.devices.some(x => x.exerciseId === exId && x.gymId === gId && norm(x.name) === norm(d.name))) return;
     S.devices.push({ id: d.id, exerciseId: exId, gymId: gId, name: d.name, note: d.note || '', step: d.step || 2.5 }); nD++;
+    if (typeof d.w === 'number') S.logs.push({ id: uid(), deviceId: d.id, date: yday, ts: Date.now(), weight: d.w });
   });
-  const p = data.plan, ids = p.exerciseIds.map(id => eMap[id]).filter(Boolean);
-  let pl = plan(p.id);
-  if (pl) pl.exerciseIds = [...new Set([...pl.exerciseIds, ...ids])];
-  else { let name = p.name; if (S.plans.some(x => norm(x.name) === norm(name))) name += ' (importiert)'; pl = { id: p.id, name, exerciseIds: ids }; S.plans.push(pl); }
+  const plansIn = data.plans || (data.plan ? [data.plan] : []);
+  let pl = null, nP = 0;
+  plansIn.forEach(p => {
+    const ids = p.exerciseIds.map(id => eMap[id]).filter(Boolean);
+    const sch = {}; Object.entries(p.schemes || {}).forEach(([k, v]) => { if (eMap[k]) sch[eMap[k]] = v; });
+    let cur = plan(p.id);
+    if (cur) { cur.exerciseIds = [...new Set([...cur.exerciseIds, ...ids])]; cur.schemes = Object.assign(cur.schemes || {}, sch); }
+    else { let name = p.name; if (S.plans.some(x => norm(x.name) === norm(name))) name += ' (importiert)'; cur = { id: p.id, name, exerciseIds: ids, schemes: sch }; S.plans.push(cur); nP++; }
+    if (!pl) pl = cur;
+  });
+  if (!pl) { toast('Im Code ist kein Plan'); return; }
   if (!plan(S.settings.planId)) S.settings.planId = pl.id;
   // aktuelles Gym leer? → ins importierte Gym wechseln
   const firstG = (data.devices || []).map(d => gMap[d.gymId]).find(Boolean);
   if (firstG && !S.devices.some(d => d.gymId === S.settings.gymId)) S.settings.gymId = firstG;
-  save(); closeSheet(); ui.tab = 'plaene'; ui.planEdit = pl.id; render();
-  toast(`Importiert: ${plural(nE, 'Übung', 'Übungen')}, ${plural(nD, 'Gerät', 'Geräte')}${nG ? ', ' + plural(nG, 'Gym', 'Gyms') : ''}`);
+  save(); closeSheet(); ui.tab = plansIn.length > 1 ? 'training' : 'plaene'; ui.planEdit = plansIn.length > 1 ? null : pl.id; render();
+  toast(`Importiert: ${nP > 1 ? plural(nP, 'Plan', 'Pläne') + ', ' : ''}${plural(nE, 'Übung', 'Übungen')}, ${plural(nD, 'Gerät', 'Geräte')}${nG ? ', ' + plural(nG, 'Gym', 'Gyms') : ''}`);
 }
 
 /* ───────────── Backup ───────────── */

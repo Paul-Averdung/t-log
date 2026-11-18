@@ -1,5 +1,5 @@
 // Offline-Unterstützung: erst Netz (mit Zeitlimit), sonst Zwischenspeicher
-const C = 't-log-v1';
+const C = 't-log-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
