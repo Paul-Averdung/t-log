@@ -61,6 +61,7 @@ main{padding:4px 16px 24px;max-width:560px;margin:0 auto}
 .check{width:24px;height:24px;border-radius:50%;background:var(--ok-bg);color:var(--ok);
   display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex:none}
 .tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--field);color:var(--soft);margin-left:6px;vertical-align:2px}
+.tag.up{background:var(--ok-bg);color:var(--ok)}
 
 .exw + .exw{border-top:1px solid var(--line)}
 .ex-body{border-top:1px solid var(--line);padding:4px 16px 14px}
@@ -73,6 +74,9 @@ main{padding:4px 16px 24px;max-width:560px;margin:0 auto}
 .dev-last .up{color:var(--ok);font-weight:600}
 .dev-note{font-size:13px;color:var(--soft);margin-top:3px;white-space:pre-wrap}
 .dev-note:before{content:"📝 "}
+.dev-up{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;background:var(--ok-bg);color:var(--ok);
+  border-radius:10px;padding:7px 7px 7px 12px;font-size:14px;font-weight:600;line-height:1.3}
+.dev-up button{border:0;background:var(--card);color:var(--ok);border-radius:8px;padding:7px 10px;font-weight:700;font-size:14px;flex:none;white-space:nowrap}
 .dev-input{display:flex;gap:8px;margin-top:10px;align-items:stretch}
 .step{width:46px;border:1px solid var(--line);background:var(--field);border-radius:10px;font-size:22px;flex:none}
 .wfield{flex:1;display:flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:0 12px;min-width:0}
@@ -85,6 +89,11 @@ main{padding:4px 16px 24px;max-width:560px;margin:0 auto}
 .seg{display:flex;flex:1;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:2px}
 .seg button{flex:1;border:0;background:none;padding:6px 0;border-radius:8px;font-size:14px;color:var(--soft)}
 .seg button.on{background:var(--card);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.upbtn{display:flex;align-items:center;gap:10px;width:100%;margin-top:8px;background:var(--field);border:1px solid var(--line);
+  border-radius:10px;padding:8px 12px;font-size:14px;color:var(--soft);text-align:left}
+.upbtn .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--soft);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+.upbtn.on{background:var(--ok-bg);border-color:transparent;color:var(--ok);font-weight:600}
+.upbtn.on .box{background:var(--ok);border-color:var(--ok);color:var(--ok-bg)}
 .ex-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .lnk{background:none;border:1px dashed var(--line);border-radius:10px;padding:9px 12px;font-size:14px;color:var(--soft);flex:1;white-space:nowrap}
 .hint{font-size:14px;color:var(--soft);padding:12px 0 4px}
@@ -117,6 +126,7 @@ main{padding:4px 16px 24px;max-width:560px;margin:0 auto}
 .log{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
 .log .d{color:var(--soft)}
 .log button{background:none;border:0;color:var(--soft);font-size:16px;padding:2px 6px}
+.log .upm{color:var(--ok);font-weight:700;margin-left:6px}
 .hist-dev{padding:14px 16px}
 .hist-dev + .hist-dev{border-top:1px solid var(--line)}
 .more{background:none;border:0;color:var(--soft);font-size:14px;padding:8px 0 0}
@@ -170,7 +180,7 @@ nav svg{width:24px;height:24px}
 'use strict';
 /* ───────────── Daten ───────────── */
 const KEY = 'training-data-v1';
-const VERSION = '18.11.2026 · 3';
+const VERSION = '19.11.2026 · 1';
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
 function fresh() {
@@ -267,12 +277,21 @@ function viewTraining() {
   return { head, body };
 }
 
+// Hat das Gerät beim letzten Training (vor heute) die Markierung „nächstes Mal mehr“?
+function wantsUp(devId) {
+  const ls = logsFor(devId), t = today();
+  if (ls.some(l => l.date === t)) return false;
+  const prev = ls.filter(l => l.date !== t).pop();
+  return !!(prev && prev.up);
+}
+
 function exCard(e) {
   const devs = devicesFor(e.id, S.settings.gymId), t = today();
   const done = devs.some(d => S.logs.some(l => l.deviceId === d.id && l.date === t));
+  const up = !done && devs.some(d => wantsUp(d.id));
   const open = ui.open === e.id;
   let h = `<button class="row" data-act="toggleEx" data-id="${e.id}">
-    <div class="main"><div class="t">${esc(e.name)}</div>
+    <div class="main"><div class="t">${esc(e.name)}${up ? '<span class="tag up">⬆ steigern</span>' : ''}</div>
     <div class="s">${scheme(e, plan(S.settings.planId))}${devs.length ? ' · ' + plural(devs.length, 'Gerät', 'Geräte') : ''}</div></div>
     ${done ? '<span class="check">✓</span>' : `<span class="chev">${open ? '⌄' : '›'}</span>`}
   </button>`;
@@ -293,6 +312,7 @@ function devRow(d) {
   const prev = ls.filter(l => l.date !== t).pop();
   const base = todayLog || prev;
   const val = base ? base.weight : '', xv = base ? (base.x || 0) : 0;
+  const upNow = !!(todayLog && todayLog.up);
   let info = prev ? `${wx(prev)} · ${fmtD(prev.date)}` : 'noch kein Eintrag';
   if (todayLog && prev && (todayLog.weight !== prev.weight || (todayLog.x || 0) !== (prev.x || 0))) {
     const diff = todayLog.weight - prev.weight;
@@ -304,6 +324,8 @@ function devRow(d) {
       <span class="dev-last">${info}</span>
     </div>
     ${d.note ? `<div class="dev-note">${esc(d.note)}</div>` : ''}
+    ${!todayLog && prev && prev.up ? `<div class="dev-up"><span>⬆ Letztes Mal alle Wdh. geschafft – heute mehr!</span>
+      <button data-act="step" data-id="${d.id}" data-dir="1">+${fmtW(d.step || 2.5)} kg</button></div>` : ''}
     <div class="dev-input">
       <button class="step" data-act="step" data-id="${d.id}" data-dir="-1" aria-label="weniger">−</button>
       <label class="wfield"><input inputmode="decimal" enterkeyhint="done" autocomplete="off" data-wfor="${d.id}" value="${val !== '' ? fmtW(val) : ''}" placeholder="0"><span>kg</span></label>
@@ -313,10 +335,12 @@ function devRow(d) {
     <div class="xrow"><span class="xlbl">Zusatzgewicht</span><div class="seg" data-xfor="${d.id}">
       ${[0, 1, 2, 3].map(n => `<button class="${n === xv ? 'on' : ''}" data-act="setX" data-id="${d.id}" data-x="${n}">${n ? 'Stufe ' + n : 'Ohne'}</button>`).join('')}
     </div></div>
+    <button class="upbtn${upNow ? ' on' : ''}" data-act="toggleUp" data-id="${d.id}" data-up="${upNow ? 1 : 0}"><span class="box">${upNow ? '✓' : ''}</span>Alle Wdh. geschafft → nächstes Mal mehr</button>
   </div>`;
 }
 
 function getX(devId) { const b = document.querySelector(`[data-xfor="${devId}"] .on`); return b ? +b.dataset.x : 0; }
+function getUp(devId) { const b = document.querySelector(`[data-act="toggleUp"][data-id="${devId}"]`); return !!(b && b.dataset.up === '1'); }
 function syncSave(devId) {
   const inp = document.querySelector(`[data-wfor="${devId}"]`), btn = document.querySelector(`[data-act="saveW"][data-id="${devId}"]`);
   if (!inp || !btn) return;
@@ -326,16 +350,16 @@ function syncSave(devId) {
   btn.textContent = same ? '✓ Heute' : 'Speichern';
 }
 
-function saveWeight(devId) {
+function saveWeight(devId, upArg) {
   const inp = document.querySelector(`[data-wfor="${devId}"]`);
   const w = parseW(inp.value);
   if (!isFinite(w) || w < 0) { toast('Bitte ein Gewicht eingeben'); inp.focus(); return; }
-  const t = today(), x = getX(devId);
+  const t = today(), x = getX(devId), up = upArg !== undefined ? upArg : getUp(devId);
   const ex0 = S.logs.find(l => l.deviceId === devId && l.date === t);
-  if (ex0) { ex0.weight = w; ex0.x = x; ex0.ts = Date.now(); }
-  else S.logs.push({ id: uid(), deviceId: devId, date: t, ts: Date.now(), weight: w, x });
+  if (ex0) { ex0.weight = w; ex0.x = x; ex0.up = up; ex0.ts = Date.now(); }
+  else S.logs.push({ id: uid(), deviceId: devId, date: t, ts: Date.now(), weight: w, x, up });
   save(); inp.blur(); render();
-  toast(`Gespeichert: ${fmtW(w)} kg${x ? ' + Stufe ' + x : ''}`);
+  toast(`Gespeichert: ${fmtW(w)} kg${x ? ' + Stufe ' + x : ''}${up ? ' · nächstes Mal mehr' : ''}`);
 }
 
 /* ───────────── Verlauf ───────────── */
@@ -380,7 +404,7 @@ function viewHistDetail(e) {
       </div>`;
       body += chart(ls);
       const all = ui.showAll[d.id], rev = ls.slice().reverse(), shown = all ? rev : rev.slice(0, 5);
-      body += `<div class="loglist">` + shown.map(l => `<div class="log"><span class="d">${fmtD(l.date)}</span><span><b>${wx(l)}</b><button data-act="delLog" data-id="${l.id}" aria-label="Eintrag löschen">✕</button></span></div>`).join('') + `</div>`;
+      body += `<div class="loglist">` + shown.map(l => `<div class="log"><span class="d">${fmtD(l.date)}</span><span><b>${wx(l)}</b>${l.up ? '<span class="upm" title="Alle Wdh. geschafft">⬆</span>' : ''}<button data-act="delLog" data-id="${l.id}" aria-label="Eintrag löschen">✕</button></span></div>`).join('') + `</div>`;
       if (rev.length > 5 && !all) body += `<button class="more" data-act="showAll" data-id="${d.id}">Alle ${rev.length} Einträge zeigen</button>`;
       body += `</div>`;
     });
@@ -770,6 +794,12 @@ const A = {
   },
   saveW: el => saveWeight(el.dataset.id),
   setX: el => { el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); syncSave(el.dataset.id); },
+  toggleUp: el => {
+    const id = el.dataset.id, on = el.dataset.up !== '1';
+    const tl = S.logs.find(l => l.deviceId === id && l.date === today());
+    if (tl) { tl.up = on; save(); render(); toast(on ? 'Gemerkt: nächstes Mal mehr ⬆' : 'Markierung entfernt'); }
+    else saveWeight(id, on);   // noch nicht gespeichert → Gewicht gleich mit speichern
+  },
   newDev: el => devForm(null, el.dataset.id),
   editDev: el => devForm(el.dataset.id),
   delDev: el => {
